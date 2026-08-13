@@ -1,184 +1,129 @@
 # Hello?
 
-**Hello?** is a small, open-source Android connectivity detector that answers a deceptively simple question:
+**Hello?** is an open-source Android connectivity detector and home-screen widget that answers a simple question: **what can I actually reach right now?**
 
-**Hello?**
+It does not treat Wi-Fi or mobile-data connectivity as proof that the Internet is usable. It probes several independent classes of endpoints and classifies the observed network state.
 
-Instead of merely checking whether a device is connected to Wi-Fi or mobile data, Hello? tests what parts of the network are actually reachable and classifies the connection into a simple human-readable state.
+## User-facing states
 
-## Connectivity states
+- **OPEN** — open international access
+- **WORLD** — Iranian and international services are both reachable, typically through different routing paths
+- **FILTER** — international access exists, but selected major international services are unavailable
+- **IRAN ONLY** — only Iranian/national-network services are reachable
+- **LOCAL ONLY** — the Internet is unavailable, but a local network is reachable, including a router or phone hotspot
+- **DEAD** — neither the wider Internet nor a usable local network is reachable
 
-Hello? uses six states:
+The app and widget deliberately stay minimal:
 
-### OPEN
+> **Hello?**
+>
+> **World.**
 
-Open international access.
+or:
 
-International services are reachable normally.
+> **Hello?**
+>
+> **Dead.**
 
-### WORLD
+The detailed diagnostic screen is where the technical information belongs.
 
-Both Iranian and international services are reachable simultaneously.
-
-This can occur when traffic is routed differently depending on its destination, for example through a rule-based VPN or proxy.
-
-### FILTER
-
-International Internet is available, but some major international services are inaccessible.
-
-For example, general international connectivity may work while services such as YouTube, Telegram, or Facebook do not.
-
-### IRAN ONLY
-
-Only Iranian or national-network services are reachable.
-
-International Internet is unavailable, while services hosted within the Iranian network remain accessible.
-
-### LOCAL ONLY
-
-The Internet is unavailable, but the local network is still functioning.
-
-This includes networks created through:
-
-- Wi-Fi routers
-- Phone hotspots
-- Ethernet
-- USB tethering
-- Other local-network connections
-
-Local devices, gateways, and local DNS services may still be reachable.
-
-### DEAD
-
-No meaningful network connectivity is available.
-
-Neither the wider Internet nor the local network can be reached.
-
----
-
-## The idea
-
-Hello? does not simply ask Android:
-
-## "Are you connected?"
-
-It asks:
-
-## "What can you actually reach?"
-
-The classification is based on several groups of connectivity tests.
-
-### International services
-
-Examples include:
-
-- Cloudflare
-- Google
-- Google connectivity endpoints
-- IP information services
-- YouTube
-- Telegram
-- Facebook
-
-### Iranian services
-
-Examples include:
-
-- Iran.ir
-- Soft98
-- Blubank
-- Digikala
-- Aparat
-- Other carefully selected Iranian services
-
-### Local network
-
-Hello? can also test the local network itself, including:
-
-- Default gateway
-- Local IP addresses
-- Local DNS
-- Local hostnames
-- Local devices and services
-- Hotspot-connected devices
-
-The exact probe list may change as the project develops.
-
----
-
-## Why multiple probes?
-
-A single website is not enough to determine whether the Internet is working.
-
-A website can be:
-
-- temporarily unavailable
-- returning an error
-- blocking a particular IP
-- behind a CDN
-- experiencing an outage
-- refusing a request while the network itself is perfectly functional
-
-Hello? therefore uses multiple independent probes and evaluates them as groups rather than treating one failed website as proof that the Internet is unavailable.
-
-HTTP status codes are also recorded separately from actual network failures.
-
-For example:
-
-- `2xx` — successful response
-- `3xx` — reachable, redirected
-- `4xx` — reachable, but request denied/not found/etc.
-- `5xx` — reachable, but server-side failure
-- timeout — no response within the configured timeout
-- DNS failure — hostname could not be resolved
-- connection failure — connection could not be established
-
-A server returning `404` is therefore not equivalent to a server being unreachable.
-
----
-
-## The widget
-
-The primary interface is intentionally minimal.
-
-The widget asks:
-
-## **Hello?**
-
-Tapping it gives the current state:
-
-OPEN — open international access
-WORLD — Iranian and international access simultaneously available through different routing
-FILTER — international access exists, but some major services are blocked
-IRAN ONLY — only Iranian/national Internet is reachable
-LOCAL ONLY — only the local network is reachable
-DEAD — no connectivity
-
-The detailed diagnostic information is available after opening the full application.
-
-The goal is to keep the widget useful at a glance without turning it into another network-monitoring dashboard.
-
----
-
-## Connectivity classification
-
-The basic classification model is:
+## Connectivity model
 
 ```mermaid
 flowchart TD
-    A[START] --> B{Can reach international websites?}
+    A[START] --> B{International websites work?}
 
-    B -->|YES| C{Can reach Iranian websites?}
-    B -->|NO| D{Can reach Iranian websites?}
+    B -->|YES| C{Iranian websites work?}
+    B -->|NO| D{Iranian websites work?}
 
     C -->|NO| E[OPEN]
-    C -->|YES| F{Can reach blocked international websites?}
+    C -->|YES| F{Blocked international sites work?}
 
     F -->|YES| G[WORLD]
     F -->|NO| J[FILTER]
 
     D -->|YES| I[IRAN ONLY]
-    D -->|NO| H{Can reach local network?}
+    D -->|NO| H{Local network works?}
 
     H -->|YES| K[LOCAL ONLY]
     H -->|NO| L[DEAD]
+```
+
+The implementation is probe-based rather than based on a single website or a single Android connectivity flag. A response such as HTTP 404 proves that a server was reached; it is not equivalent to a timeout or connection failure.
+
+## Probe groups
+
+### International
+
+The initial design includes reference endpoints such as:
+
+- `1.1.1.1`
+- `8.8.8.8`
+- `https://api.ip.sb/geoip`
+- `https://www.gstatic.com/generate_204`
+- Google
+- YouTube
+- Telegram
+- Facebook
+
+### Iranian
+
+The initial design includes reference services such as:
+
+- `iran.ir`
+- Soft98
+- Blubank
+- Digikala
+- Aparat
+
+### Local
+
+Hello? can inspect local-network evidence including:
+
+- Default gateway
+- Local IP configuration
+- Local DNS
+- Local hostnames
+- Reachable LAN peers where Android exposes suitable information
+- Devices connected through a phone hotspot
+
+The probe list is expected to evolve as testing reveals better reference endpoints. A single site should never be treated as authoritative for an entire network class.
+
+## Local networks and hotspots
+
+A phone hotspot is considered a **local network**, not a separate connectivity state.
+
+If a phone or another device has created a functioning LAN but the wider Internet is unavailable, Hello? may report **LOCAL ONLY**. The diagnostic view can separately show whether the local transport is Wi-Fi, hotspot/tethering, Ethernet, USB tethering, or another supported interface.
+
+## Privacy
+
+Hello? does not require an account or a Hello?-controlled server. Connectivity checks necessarily contact the endpoints being tested, so the application will document its external probes and their purpose.
+
+The classifier does not need browsing history, passwords, messages, contacts, or personal files.
+
+## Development status
+
+**Early development.**
+
+The first repository version establishes the Android application, widget, probe engine, and initial classifier. The classification rules and probe set will be refined through real-world testing across Wi-Fi, mobile data, VPN/rule-based routing, national-network-only conditions, hotspots, and local-only networks.
+
+## Open source and attribution
+
+Hello? is free and open-source software licensed under the **GNU General Public License, version 3 or later**, together with the project's additional attribution terms.
+
+**Original developer:** Mohammed Matin Kabiri
+
+Previous developer and contributor attribution must be preserved in derivative versions as described by `ATTRIBUTION-TERMS.md`.
+
+See:
+
+- [`LICENSE`](LICENSE)
+- [`ATTRIBUTION-TERMS.md`](ATTRIBUTION-TERMS.md)
+- [`AUTHORS.md`](AUTHORS.md)
+- [`CONTRIBUTING.md`](CONTRIBUTING.md)
+
+## License
+
+Copyright © 2026 Mohammed Matin Kabiri and contributors.
+
+GPLv3-or-later applies to the software. The GPL text is reproduced in `LICENSE`; the project's additional attribution terms are in `ATTRIBUTION-TERMS.md`.
