@@ -1,11 +1,11 @@
 package com.matinkabiri.hello
 
+import android.app.Activity
 import android.os.Bundle
 import android.widget.TextView
-import androidx.activity.ComponentActivity
 import java.util.concurrent.Executors
 
-class MainActivity : ComponentActivity() {
+class MainActivity : Activity() {
     private val executor = Executors.newSingleThreadExecutor()
 
     override fun onCreate(savedInstanceState: Bundle?) {
