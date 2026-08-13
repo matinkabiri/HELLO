@@ -2,7 +2,7 @@
 
 **Hello?** is a small, open-source Android connectivity detector that answers a deceptively simple question:
 
-> **Hello?**
+**Hello?**
 
 Instead of merely checking whether a device is connected to Wi-Fi or mobile data, Hello? tests what parts of the network are actually reachable and classifies the connection into a simple human-readable state.
 
@@ -60,11 +60,11 @@ Neither the wider Internet nor the local network can be reached.
 
 Hello? does not simply ask Android:
 
-> "Are you connected?"
+## "Are you connected?"
 
 It asks:
 
-> "What can you actually reach?"
+## "What can you actually reach?"
 
 The classification is based on several groups of connectivity tests.
 
@@ -143,27 +143,16 @@ The primary interface is intentionally minimal.
 
 The widget asks:
 
-> **Hello?**
+## **Hello?**
 
 Tapping it gives the current state:
 
-> **World.**
-
-or:
-
-> **Filter.**
-
-or:
-
-> **Iran Only.**
-
-or:
-
-> **Local Only.**
-
-or:
-
-> **Dead.**
+OPEN — open international access
+WORLD — Iranian and international access simultaneously available through different routing
+FILTER — international access exists, but some major services are blocked
+IRAN ONLY — only Iranian/national Internet is reachable
+LOCAL ONLY — only the local network is reachable
+DEAD — no connectivity
 
 The detailed diagnostic information is available after opening the full application.
 
@@ -177,19 +166,19 @@ The basic classification model is:
 
 ```mermaid
 flowchart TD
-    A[START] --> B{International websites work?}
+    A[START] --> B{Can reach international websites?}
 
-    B -->|YES| C{Iranian websites work?}
-    B -->|NO| D{Iranian websites work?}
+    B -->|YES| C{Can reach Iranian websites?}
+    B -->|NO| D{Can reach Iranian websites?}
 
     C -->|NO| E[OPEN]
-    C -->|YES| F{Blocked international sites work?}
+    C -->|YES| F{Can reach blocked international websites?}
 
     F -->|YES| G[WORLD]
     F -->|NO| J[FILTER]
 
     D -->|YES| I[IRAN ONLY]
-    D -->|NO| H{Local network works?}
+    D -->|NO| H{Can reach local network?}
 
     H -->|YES| K[LOCAL ONLY]
     H -->|NO| L[DEAD]
